@@ -10,7 +10,7 @@ class RTLPlugin {
   }
 
   getVersion() {
-    return "1.0.0";
+    return "1.0.1";
   }
 
   getAuthor() {
@@ -27,7 +27,7 @@ class RTLPlugin {
 
   stop() {
     BdApi.clearCSS("rtlSupport");
-    this.unpatchMessages();
+    this.unpatchAll();
   }
 
   observer(changes) {}
@@ -35,6 +35,7 @@ class RTLPlugin {
   initialize() {
     this.injectCSS();
     this.patchMessages();
+    this.patchEmbeds();
   }
 
   downloadLib() {
@@ -64,36 +65,52 @@ class RTLPlugin {
   injectCSS() {
     BdApi.injectCSS(
       "rtlSupport",
-      `textarea { 
-        unicode-bidi: plaintext; 
-      } 
-      
-      .containerCozy-336-Cz { 
-        display: flex; 
-      } 
-      
-      .containerCozy-336-Cz .buttonContainer-KtQ8wc { 
-        order: 2; 
-      } 
-
-      .containerCozy-336-Cz.rtl .buttonContainer-KtQ8wc .buttonContainer-37UsAw {
-        flex-direction: row-reverse;
-      }
-
-      .containerCozy-336-Cz.rtl .buttonContainer-KtQ8wc .buttonContainer-37UsAw div:last-child {
-        margin: 0;
-      }
-      
-      .containerCozy-336-Cz .markup-2BOw-j { 
-        flex: 1 1 0; 
-        order: 1; 
-      }
-      
-      .containerCozy-336-Cz.rtl .markup-2BOw-j {
-        margin-right: 11px;
-        order: 3;
-      }`
+      `${this.messagesCSS()}
+      ${this.embedsCSS()}`
     );
+  }
+
+  messagesCSS() {
+    return `textarea { 
+      unicode-bidi: plaintext; 
+    } 
+    
+    .containerCozy-336-Cz { 
+      display: flex; 
+    } 
+    
+    .containerCozy-336-Cz .buttonContainer-KtQ8wc { 
+      order: 2; 
+    } 
+
+    .containerCozy-336-Cz.rtl .buttonContainer-KtQ8wc .buttonContainer-37UsAw {
+      flex-direction: row-reverse;
+    }
+
+    .containerCozy-336-Cz.rtl .buttonContainer-KtQ8wc .buttonContainer-37UsAw div:last-child {
+      margin: 0;
+    }
+    
+    .containerCozy-336-Cz .markup-2BOw-j { 
+      flex: 1 1 0; 
+      order: 1; 
+    }
+    
+    .containerCozy-336-Cz.rtl .markup-2BOw-j {
+      margin-right: 11px;
+      order: 3;
+    }`;
+  }
+
+  embedsCSS() {
+    return `.containerCozy-B4noqO.rtl {
+      align-items: flex-end;
+    }
+
+    .containerCozy-B4noqO .markup-2BOw-j a { 
+      direction: unset;
+      unicode-bidi: embed;
+    }`;
   }
 
   patchMessages() {
@@ -211,7 +228,73 @@ class RTLPlugin {
     });
   }
 
-  unpatchMessages() {
+  patchEmbeds() {
+    const { ReactComponents, Renderer } = window.DiscordInternals;
+    const {
+      React,
+      ReactDOM: { findDOMNode }
+    } = BdApi;
+
+    ReactComponents.get("Embed", embed => {
+      const cancel = Renderer.patchRender(embed, [
+        {
+          selector: {
+            className: /^embedWrapper/
+          },
+          method: "replaceChildren",
+          content: (_, elem) =>
+            React.cloneElement(elem, {
+              className: elem.props.className,
+              dir: "auto"
+            })
+        }
+      ]);
+
+      this.cancelPatches.push(cancel);
+
+      const that = this;
+
+      const fixDirection = function() {
+        const elem = findDOMNode(this);
+
+        if (elem.querySelector("a[class^='anchor']")) {
+          if (
+            getComputedStyle(elem.querySelector("a[class^='anchor']"))
+              .direction === "rtl"
+          ) {
+            elem.parentElement.classList.add("rtl");
+          } else {
+            if (elem.parentElement.classList.contains("rtl")) {
+              elem.parentElement.classList.remove("rtl");
+            }
+          }
+        }
+
+        const cancel = () => {
+          const elem = findDOMNode(this);
+          if (elem.querySelector("a[class^='anchor']")) {
+            if (elem.parentElement.classList.contains("rtl")) {
+              elem.parentElement.classList.remove("rtl");
+            }
+          }
+        };
+
+        that.cancelPatches.push(cancel);
+      };
+
+      embed.prototype.componentDidMount = fixDirection;
+      embed.prototype.componentDidUpdate = fixDirection;
+
+      this.cancelPatches.push(
+        Renderer.rebindMethods(embed, [
+          "componentDidMount",
+          "componentDidUpdate"
+        ])
+      );
+    });
+  }
+
+  unpatchAll() {
     for (let cancel of this.cancelPatches) {
       cancel();
     }
