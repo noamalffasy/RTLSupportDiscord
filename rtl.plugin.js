@@ -10,7 +10,7 @@ class RTLPlugin {
   }
 
   getVersion() {
-    return "1.0.1";
+    return "1.0.2";
   }
 
   getAuthor() {
@@ -84,6 +84,8 @@ class RTLPlugin {
     } 
 
     .containerCozy-336-Cz.rtl .buttonContainer-KtQ8wc .buttonContainer-37UsAw {
+      margin: 0.2rem 0 0 0;
+      align-items: start;
       flex-direction: row-reverse;
     }
 
@@ -92,13 +94,19 @@ class RTLPlugin {
     }
     
     .containerCozy-336-Cz .markup-2BOw-j { 
+      unicode-bidi: plaintext;
       flex: 1 1 0; 
       order: 1; 
     }
     
     .containerCozy-336-Cz.rtl .markup-2BOw-j {
       margin-right: 11px;
+      text-align: right;
       order: 3;
+    }
+    
+    .containerCozy-336-Cz .markup-2BOw-j span[class^='mention'] {
+      unicode-bidi: plaintext;
     }`;
   }
 
@@ -195,9 +203,20 @@ class RTLPlugin {
 
         const elem = findDOMNode(this);
         if (elem.querySelector("div[class^='markup']")) {
+          const elemTxt = elem.innerText;
+          let latinLettersInTxt = elemTxt.match(/([A-Za-z])/g) || [];
+
+          if (elem.querySelector("a")) {
+            latinLettersInTxt = latinLettersInTxt.filter(
+              letter => !elem.querySelector("a").innerText.includes(letter)
+            );
+          }
+
           if (
             getComputedStyle(elem.querySelector("div[class^='markup']"))
-              .direction === "rtl"
+              .direction === "rtl" ||
+            elemTxt.length - latinLettersInTxt.length >
+              latinLettersInTxt.length
           ) {
             elem.classList.add("rtl");
           } else {
