@@ -10,7 +10,7 @@ class RTLPlugin {
   }
 
   getVersion() {
-    return "1.0.3";
+    return "1.0.4";
   }
 
   getAuthor() {
@@ -203,13 +203,17 @@ class RTLPlugin {
 
         const elem = findDOMNode(this);
         if (elem.querySelector("div[class^='markup']")) {
-          const elemTxt = elem.innerText;
-          let latinLettersInTxt = elemTxt.match(/([A-Za-z:/\+\.])/g) || [];
+          let elemTxt = elem.innerText.split("").filter(letter => letter.match(/[\W0-9]/) === null).join("");
+          let latinLettersInTxt = elemTxt.match(/([A-Za-z])/g) || [];
 
           if (elem.querySelector("a")) {
             latinLettersInTxt = latinLettersInTxt.filter(
               letter => !elem.querySelector("a").innerText.includes(letter)
             );
+
+            elemTxt = elemTxt.split("").filter(
+              letter => !elem.querySelector("a").innerText.includes(letter)
+            ).join("");
           }
 
           if (
