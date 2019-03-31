@@ -10,7 +10,7 @@ class RTLPlugin {
   }
 
   getVersion() {
-    return "1.0.2";
+    return "1.0.3";
   }
 
   getAuthor() {
@@ -204,7 +204,7 @@ class RTLPlugin {
         const elem = findDOMNode(this);
         if (elem.querySelector("div[class^='markup']")) {
           const elemTxt = elem.innerText;
-          let latinLettersInTxt = elemTxt.match(/([A-Za-z])/g) || [];
+          let latinLettersInTxt = elemTxt.match(/([A-Za-z:/\+\.])/g) || [];
 
           if (elem.querySelector("a")) {
             latinLettersInTxt = latinLettersInTxt.filter(
@@ -215,8 +215,9 @@ class RTLPlugin {
           if (
             getComputedStyle(elem.querySelector("div[class^='markup']"))
               .direction === "rtl" ||
-            elemTxt.length - latinLettersInTxt.length >
-              latinLettersInTxt.length
+            (elemTxt.length - latinLettersInTxt.length >
+              latinLettersInTxt.length &&
+              latinLettersInTxt.length !== 0)
           ) {
             elem.classList.add("rtl");
           } else {
