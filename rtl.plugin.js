@@ -203,7 +203,7 @@ class RTLPlugin {
 
         const elem = findDOMNode(this);
         if (elem.querySelector("div[class^='markup']")) {
-          let elemTxt = elem.innerText.split("").filter(letter => letter.match(/[\W0-9]/) === null).join("");
+          let elemTxt = elem.innerText.split("").filter(letter => letter.match(/[\s0-9]/) === null).join("");
           let latinLettersInTxt = elemTxt.match(/([A-Za-z])/g) || [];
 
           if (elem.querySelector("a")) {
